@@ -422,10 +422,16 @@ class DrawingCanvas {
         if (this.redoHistory.length === 0) return null;
 
         const strokeToRedo = this.redoHistory.pop();
-        this.strokeHistory.push(strokeToRedo);
+        // Re-add as a new stroke ID to avoid duplicate IDs in shared history
+        const redoneStroke = {
+            ...strokeToRedo,
+            id: this.generateStrokeId()
+        };
+
+        this.strokeHistory.push(redoneStroke);
         this.redrawCanvas();
 
-        return strokeToRedo;
+        return redoneStroke;
     }
 
     /**

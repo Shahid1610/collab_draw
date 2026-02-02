@@ -1,245 +1,184 @@
-# Architecture Documentation
+# Architecture
 
-## Overview
+This document describes how drawing data is represented, transmitted, and synchronized across users.
 
-Collaborative Canvas is a real-time drawing application designed for multi-user collaboration. The architecture prioritizes performance, scalability, and data consistency.
+## Data Flow Diagram
 
-## Core Principles
-
-### 1. Server Authority
-The server maintains the authoritative state of the drawing canvas. All stroke operations are validated and stored server-side, ensuring consistency across all clients.
-
-**Why this matters:**
-- Prevents conflicts between concurrent operations
-- Enables proper undo semantics per user
-- Provides single source of truth for new users
-- Allows for robust error recovery
-
-### 2. Stateless Client Canvas
-The client canvas is treated as stateless and fully reconstructible from server data.
-
-**Why this matters:**
-- Simplifies client-side state management
-- Enables easy reconnection and state recovery
-- Reduces memory footprint on clients
-- Ensures consistency across all connected clients
-
-### 3. Stroke-Based Synchronization
-Instead of streaming pixels, the application synchronizes drawing actions as stroke objects.
-
-**Why this matters:**
-- Dramatically reduces bandwidth usage
-- Preserves drawing semantics and intent
-- Enables selective undo operations
-- Allows for efficient data compression and optimization
-
-### 4. Room-Based Isolation
-All drawing operations are scoped to specific rooms, providing natural multi-tenancy.
-
-**Why this matters:**
-- Prevents cross-room interference
-- Enables scalable architecture
-- Provides natural privacy boundaries
-- Allows for concurrent independent sessions
-
-## Data Flow Architecture
-
-### Drawing Pipeline
+### End-to-end drawing flow (User A → everyone in the room)
 
 ```
-Client A              Server                Client B
-   |                    |                     |
-   |-- strokeSegment -->|                     |
-   |                    |-- strokeSegment -->|
-   |                    |                     |
-   |-- addStroke ------>|                     |
-   |                    |-- addStroke ------>|
-   |                    |                     |
-   |<-- strokeAdded ----|-- strokeAdded ---->|
+User A (browser)                 Server (Socket.IO)                  User B (browser)
+-----------------                ------------------                  ----------------
+canvas.js produces points
+  |                                                                              |
+  | strokeSegment (preview)                                                      |
+  +-------------------------------> (broadcast to room) ------------------------>+  render segment immediately
+  |                                                                              |
+  | addStroke (final stroke)                                                     |
+  +-------------------------------> validate + store in drawing-state --------->+  render + append to history
+                                                                                 (same for all other users)
 ```
 
-### Stroke Segments vs Complete Strokes
+### Key idea
+- **Segments** improve perceived responsiveness (other users see the stroke “live”).
+- **Final strokes** are the only data stored as authoritative history on the server.
 
-**Stroke Segments**:
-- Sent during active drawing for real-time preview
-- Not added to permanent history
-- Provide immediate visual feedback
-- Throttled to optimize bandwidth
+## WebSocket Protocol
 
-**Complete Strokes**:
-- Sent when drawing operation completes
-- Validated and stored server-side
-- Added to permanent history
-- Broadcast to all clients
+All WebSocket communication uses Socket.IO. Messages are scoped by a `room` name.
 
-## Component Architecture
+### Stroke object format
 
-### Client-Side Components
-
-#### Canvas (`canvas.js`)
-- Handles all drawing operations
-- Manages coordinate transformation
-- Implements optimized rendering
-- Provides stroke batching and segmentation
-
-**Key Responsibilities:**
-- Coordinate mapping (CSS to Canvas coordinates)
-- Device pixel ratio handling
-- Local stroke rendering
-- Performance optimization (batch rendering)
-
-#### WebSocket Manager (`websocket.js`)
-- Manages real-time communication
-- Implements adaptive throttling
-- Handles connection management
-- Manages ghost cursors
-
-**Key Responsibilities:**
-- Network latency measurement
-- Adaptive buffering strategies
-- Event routing and handling
-- Error recovery and reconnection
-
-### Server-Side Components
-
-#### Server (`server.js`)
-- HTTP and WebSocket serving
-- Request validation and routing
-- Connection management
-- Event broadcasting
-
-#### Room Manager (`rooms.js`)
-- User presence tracking
-- Room lifecycle management
-- Access control
-- Statistics collection
-
-#### State Manager (`state-manager.js`)
-- Authoritative stroke history
-- Undo operation logic
-- Data validation
-- Memory management
-
-## Undo Strategy
-
-### Design Principles
-
-1. **Per-User Undo**: Each user can only undo their own last stroke
-2. **Server Authority**: Server validates and executes undo operations
-3. **Immediate Feedback**: Clients provide immediate local undo with server confirmation
-4. **Event Sourcing**: Undo is implemented as a new event (stroke removal)
-
-### Implementation Details
-
-```javascript
-// Client-side immediate undo
-const removed = canvas.removeLastStrokeFromUser(userId);
-if (removed) {
-    canvas.redrawCanvas();
-    wsManager.sendUndo();
-}
-
-// Server-side authoritative undo
-const removedStroke = stateManager.undo(room, userId);
-if (removedStroke) {
-    io.to(room).emit('strokeUndone', { userId, strokeId });
+```json
+{
+  "id": "stroke_1738480000000_ab12cd34",
+  "userId": "user_1738480000000_xy12ab34",
+  "color": "#000000",
+  "width": 3,
+  "points": [{ "x": 10.1, "y": 20.2 }, { "x": 11.0, "y": 21.4 }],
+  "isSegment": false
 }
 ```
 
-## Performance Considerations
+### Events (client → server)
 
-### Client-Side Optimizations
+- **`joinRoom`**
 
-1. **Stroke Batching**: Small strokes are accumulated and sent in batches
-2. **Segment Throttling**: Real-time segments are throttled to prevent flooding
-3. **Batch Rendering**: Strokes with similar properties are rendered together
-4. **Memory Management**: Limited stroke history prevents memory leaks
-5. **Adaptive Quality**: Network conditions affect update frequencies
+```json
+{ "room": "my-room" }
+```
 
-### Server-Side Optimizations
+- **`addStroke`** (final stroke; persisted)
 
-1. **Efficient Data Structures**: Maps and sets for O(1) operations
-2. **Lazy Cleanup**: Inactive rooms are cleaned up periodically
-3. **Memory Monitoring**: Stroke history size is tracked and limited
-4. **Connection Pooling**: Efficient WebSocket connection management
+```json
+{ "room": "my-room", "stroke": { "...stroke" : "object" } }
+```
 
-### Network Optimizations
+- **`strokeSegment`** (preview segment; not persisted)
 
-1. **Compression**: Stroke data is inherently compressible
-2. **Delta Updates**: Only changes are transmitted
-3. **Adaptive Throttling**: Network latency affects update frequencies
-4. **Selective Broadcasting**: Events are targeted to specific rooms
+```json
+{ "room": "my-room", "segment": { "...stroke" : "object", "isSegment": true } }
+```
 
-## Tradeoffs and Limitations
+- **`cursorMove`**
 
-### Tradeoffs
+```json
+{ "room": "my-room", "userId": "user_...", "x": 120, "y": 300 }
+```
 
-1. **Latency vs Bandwidth**: Stroke segments add latency but improve perceived responsiveness
-2. **Memory vs Performance**: Keeping stroke history uses memory but enables undo functionality
-3. **Complexity vs Features**: The architecture is more complex but provides rich features
+- **`drawingState`**
 
-### Limitations
+```json
+{ "room": "my-room", "userId": "user_...", "isDrawing": true }
+```
 
-1. **Stroke History Size**: Unlimited stroke history is impractical, so history is truncated
-2. **Network Dependency**: Real-time features require persistent connection
-3. **Single Canvas**: Only one canvas per room (no layers or multiple canvases)
-4. **Undo Granularity**: Only last-stroke undo, not arbitrary undo history
+- **`globalUndo`**
 
-### Scalability Considerations
+```json
+{ "room": "my-room", "userId": "user_...", "strokeId": "stroke_..." }
+```
 
-1. **Room Isolation**: Rooms provide natural horizontal scaling
-2. **State Distribution**: Each room maintains its own state
-3. **Connection Limits**: WebSocket connections are the primary bottleneck
-4. **Memory Usage**: Large stroke histories impact server memory
+- **`clearCanvas`**
 
-## Security Considerations
+```json
+{ "room": "my-room", "userId": "user_..." }
+```
 
-### Input Validation
-- All stroke data is validated server-side
-- Room names are sanitized
-- User IDs are generated server-side
+- **`ping`** (latency measurement)
 
-### Access Control
-- Room-based isolation provides natural boundaries
-- No authentication required (anonymous collaboration)
-- Users can only operate within their joined rooms
+```json
+{ "timestamp": 1738480000000 }
+```
 
-### Data Privacy
-- No persistent storage of drawings
-- Room data exists only in memory
-- Users can clear canvas at any time
+### Events (server → client)
 
-## Future Extensions
+- **`roomJoined`** (initial sync for the joiner)
 
-### Possible Enhancements
+```json
+{
+  "room": "my-room",
+  "userId": "user_...",
+  "users": ["user_..."],
+  "strokes": [ { "...stroke": "object" } ]
+}
+```
 
-1. **Persistent Storage**: Database integration for permanent drawings
-2. **User Authentication**: Named users with profiles and history
-3. **Drawing Tools**: Shapes, text, layers, etc.
-4. **Export Functionality**: Save drawings as images
-5. **Real-time Voice**: Audio collaboration alongside drawing
+- **`userJoined`** (presence hint)
 
-### Architecture Adaptations
+```json
+{ "userId": "user_...", "users": ["user_..."] }
+```
 
-1. **Microservices**: Separate services for rooms, state, and authentication
-2. **Message Queues**: For handling high-volume drawing operations
-3. **CDN Integration**: For serving static assets and caching
-4. **Load Balancing**: Multiple server instances behind a load balancer
+- **`strokeAdded`** (broadcast for both final strokes and preview segments)
 
-## Monitoring and Debugging
+```json
+{ "...stroke": "object" }
+```
 
-### Metrics to Track
+- **`globalUndo`**
 
-1. **Performance**: Stroke latency, render times, network latency
-2. **Usage**: Active rooms, user counts, stroke frequencies
-3. **Errors**: Connection failures, invalid data, timeout events
-4. **Resources**: Memory usage, CPU usage, network bandwidth
+```json
+{ "userId": "user_...", "strokeId": "stroke_..." }
+```
 
-### Debugging Tools
+- **`clearCanvas`**
 
-1. **Client Logging**: Browser console debugging with verbosity levels
-2. **Server Logging**: Structured logging with correlation IDs
-3. **Performance Monitoring**: Real-time metrics and alerts
-4. **Health Endpoints**: Server status and statistics endpoints
+```json
+{ "room": "my-room" }
+```
 
-This architecture provides a solid foundation for real-time collaborative drawing while maintaining performance, scalability, and data consistency.
+- **`cursorMove`**
+
+```json
+{ "userId": "user_...", "x": 120, "y": 300 }
+```
+
+- **`drawingState`**
+
+```json
+{ "userId": "user_...", "isDrawing": true }
+```
+
+- **`pong`**
+
+```json
+{ "timestamp": 1738480000000 }
+```
+
+## Undo / Redo Strategy
+
+### Global Undo
+- Undo is implemented as **“remove stroke by id”**.
+- The client picks the most recent stroke it can remove locally and sends `globalUndo(room, strokeId)`.
+- The server removes the stroke from `server/drawing-state.js` and broadcasts `globalUndo` so all clients remove the same stroke and redraw.
+
+### Global Redo
+- Redo is implemented as **“re-add the previously removed stroke”** by sending it again as a normal `addStroke`.
+- To prevent conflicts, redo creates a **new `stroke.id`** when re-adding (same points/color/width, new identifier). This avoids duplicate IDs in shared history and keeps later `globalUndo` deterministic.
+
+## Performance Decisions
+
+### Why these optimizations exist
+- **Stroke-based sync (not pixel streaming)**: much smaller payloads and natural undo (strokes are discrete objects).
+- **Segment previews (`strokeSegment`)**: improves perceived “live collaboration” for long strokes; segments are not persisted to keep memory/bandwidth stable.
+- **Throttling**:
+  - Segments are throttled in `client/canvas.js` to avoid flooding the network while drawing.
+  - Cursor updates are throttled in `client/websocket.js` to reduce noisy traffic.
+- **Device Pixel Ratio (DPR) scaling**: keeps lines sharp on high-DPI screens while keeping coordinate math consistent.
+- **History limit (`maxStrokesHistory`)**: prevents unbounded client memory growth.
+- **`requestAnimationFrame` rendering**: keeps drawing smooth by aligning with the browser’s paint loop.
+
+## Conflict Handling
+
+### Simultaneous drawing
+- Drawing is **additive**: most events are “append a stroke”, so concurrent strokes do not conflict logically.
+- The system is **event-driven** and effectively **last-write-wins for ordering**:
+  - The order of strokes is the order in which the server receives/stores them.
+  - Clients render strokes in the order they arrive.
+
+### Undo conflicts
+- Undo targets a **specific stroke id**. If two users undo concurrently, both removals will be broadcast and applied; the final canvas state is the result of applying both operations in the order they arrive.
+
+### State source of truth
+- The server’s in-memory `drawing-state.js` is the authoritative store for final strokes in a room.
+- If the server restarts, room state resets (no persistence).
