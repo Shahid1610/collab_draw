@@ -7,7 +7,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const StateManager = require('./state-manager');
+const DrawingState = require('./drawing-state');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client')));
 
 const PORT = process.env.PORT || 3000;
-const stateManager = new StateManager();
+const drawingState = new DrawingState();
 
 // Simple connection handler - no problematic events
 io.on('connection', (socket) => {
@@ -47,7 +47,7 @@ io.on('connection', (socket) => {
         console.log(`User ${socket.userId} joined room: ${room}`);
 
         // Send current room state
-        const roomState = stateManager.getRoomStateForUser(room);
+        const roomState = drawingState.getRoomStateForUser(room);
         socket.emit('roomJoined', {
             room: room,
             userId: socket.userId,
@@ -80,7 +80,7 @@ io.on('connection', (socket) => {
         }
 
         try {
-            stateManager.addStroke(room, stroke);
+            drawingState.addStroke(room, stroke);
         } catch (err) {
             console.error('Invalid stroke:', err?.message || err);
             socket.emit('error', { message: 'Invalid stroke data' });
@@ -130,7 +130,7 @@ io.on('connection', (socket) => {
             return;
         }
 
-        stateManager.removeStrokeById(room, strokeId);
+        drawingState.removeStrokeById(room, strokeId);
         console.log(`Global undo: stroke ${strokeId} in room ${room}`);
 
         // Broadcast to all users
@@ -144,7 +144,7 @@ io.on('connection', (socket) => {
     socket.on('clearCanvas', (data) => {
         const { room } = data || {};
         if (!socket.currentRoom || socket.currentRoom !== room) return;
-        stateManager.clearRoom(room);
+        drawingState.clearRoom(room);
         io.to(room).emit('clearCanvas', { room });
     });
 
