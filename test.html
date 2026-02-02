@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Functions</title>
+    <script>
+        function testApplication() {
+            console.log('=== Testing Collaborative Canvas ===');
+            
+            // Test 1: Check if all classes are loaded
+            console.log('1. Class Loading:');
+            console.log('   - DrawingCanvas:', typeof DrawingCanvas !== 'undefined');
+            console.log('   - WebSocketManager:', typeof WebSocketManager !== 'undefined');
+            console.log('   - io:', typeof io !== 'undefined');
+            
+            // Test 2: Check DOM elements
+            console.log('2. DOM Elements:');
+            console.log('   - Canvas element:', !!document.getElementById('drawingCanvas'));
+            console.log('   - Controls:', !!document.getElementById('controls'));
+            
+            // Test 3: Check canvas functionality
+            try {
+                const canvasElement = document.getElementById('drawingCanvas');
+                if (canvasElement) {
+                    const canvas = new DrawingCanvas(canvasElement);
+                    console.log('3. Canvas Creation: SUCCESS');
+                    console.log('   - Canvas dimensions:', canvasElement.width + 'x' + canvasElement.height);
+                    console.log('   - Context available:', !!canvas.ctx);
+                }
+            } catch (error) {
+                console.error('3. Canvas Creation: FAILED', error);
+            }
+            
+            // Test 4: Check WebSocket functionality
+            try {
+                const canvasElement = document.getElementById('drawingCanvas');
+                const canvas = new DrawingCanvas(canvasElement);
+                const wsManager = new WebSocketManager(canvas);
+                console.log('4. WebSocket Creation: SUCCESS');
+                console.log('   - User ID:', wsManager.userId);
+                
+                wsManager.connect();
+                console.log('   - Connection initiated');
+            } catch (error) {
+                console.error('4. WebSocket Creation: FAILED', error);
+            }
+            
+            console.log('=== Test Complete ===');
+        }
+        
+        // Run tests after page loads
+        window.addEventListener('load', testApplication);
+    </script>
+</head>
+<body>
+    <h1>Collaborative Canvas Test</h1>
+    <p>Check browser console for test results.</p>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="canvas.js"></script>
+    <script src="websocket.js"></script>
+</body>
+</html>

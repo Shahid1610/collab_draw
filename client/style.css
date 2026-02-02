@@ -1,0 +1,305 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+#controls {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Tool sections */
+#drawingTools, #drawingSettings, #drawingActions, #roomSection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-right: 1px solid #ddd;
+    padding-right: 15px;
+}
+
+#drawingTools {
+    margin-right: 5px;
+}
+
+#drawingSettings {
+    margin-right: 5px;
+}
+
+#drawingActions {
+    margin-right: 5px;
+}
+
+#roomSection {
+    border-right: none;
+    padding-right: 0;
+}
+
+/* Tool buttons */
+.tool-btn {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.tool-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.tool-btn.active {
+    background: #007bff;
+    border-color: #0056b3;
+    color: white;
+}
+
+#controls input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+#controls input[type="color"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#controls input[type="range"] {
+    width: 100px;
+}
+
+#controls input[type="text"] {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 120px;
+}
+
+#controls button {
+    padding: 8px 15px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#controls button:hover {
+    background: #0056b3;
+}
+
+#controls button:active {
+    transform: translateY(1px);
+}
+
+#sizeDisplay {
+    font-weight: bold;
+    min-width: 20px;
+}
+
+#roomSection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 1px solid #ddd;
+    padding-left: 15px;
+}
+
+#roomDisplay {
+    font-size: 12px;
+    color: #666;
+}
+
+#userList {
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid #ddd;
+    font-size: 11px;
+    color: #666;
+    min-width: 60px;
+}
+
+.user-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0;
+}
+
+.user-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid #333;
+}
+
+.user-name {
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+#drawingCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: block;
+    background: white;
+    cursor: crosshair;
+    touch-action: none;
+    z-index: 1;
+}
+
+/* Enhanced ghost cursor styles */
+.ghost-cursor {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border: 3px solid;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 999;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.ghost-cursor.drawing {
+    box-shadow: 0 0 20px currentColor;
+    animation: drawingPulse 1s infinite;
+}
+
+/* Cursor tooltip */
+.cursor-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    white-space: nowrap;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.user-avatar {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-weight: bold;
+    font-size: 10px;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.user-status {
+    font-size: 9px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.ghost-cursor::after {
+    content: attr(data-user);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 4px;
+    padding: 3px 8px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ghost-cursor::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: inherit;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* Cursor animations */
+@keyframes cursorFadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes cursorPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+}
+
+/* Active drawing cursor state */
+.ghost-cursor.drawing {
+    animation: drawingPulse 1s infinite;
+}
+
+@keyframes drawingPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.8;
+    }
+}
+
+.ghost-cursor.drawing::after {
+    background: rgba(255, 255, 255, 0.95);
+    color: rgba(0, 0, 0, 0.9);
+    font-weight: 600;
+}

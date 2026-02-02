@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Canvas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="controls">
+        <div id="drawingTools">
+            <button id="penTool" class="tool-btn active">✏️ Pen</button>
+            <button id="eraserTool" class="tool-btn">🧹 Eraser</button>
+        </div>
+        <div id="drawingSettings">
+            <input type="color" id="colorPicker" value="#000000">
+            <input type="range" id="brushSize" min="1" max="20" value="3">
+            <span id="sizeDisplay">3</span>
+        </div>
+        <div id="drawingActions">
+            <button id="undoBtn">↶ Undo</button>
+            <button id="redoBtn">↷ Redo</button>
+            <button id="clearBtn">🗑️ Clear</button>
+        </div>
+        <div id="roomSection">
+            <input type="text" id="roomInput" placeholder="Room name" value="">
+            <button id="joinBtn">Join</button>
+            <span id="roomDisplay">Room: none</span>
+            <div id="userList"></div>
+            <div id="debugInfo" style="font-size: 10px; color: #666; margin-top: 5px;"></div>
+        </div>
+    </div>
+    <canvas id="drawingCanvas"></canvas>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="canvas.js"></script>
+    <script src="websocket.js"></script>
+    <script src="main.js"></script>
+    <script>
+        // Simple test to verify everything is working
+        setTimeout(() => {
+            console.log('=== Application Status ===');
+            console.log('io available:', typeof io !== 'undefined');
+            console.log('DrawingCanvas available:', typeof DrawingCanvas !== 'undefined');
+            console.log('WebSocketManager available:', typeof WebSocketManager !== 'undefined');
+            
+            const canvas = document.getElementById('drawingCanvas');
+            console.log('Canvas element exists:', !!canvas);
+            if (canvas) {
+                console.log('Canvas dimensions:', canvas.width + 'x' + canvas.height);
+            }
+            
+            // Test basic drawing
+            const ctx = canvas?.getContext('2d');
+            if (ctx) {
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(100, 100);
+                ctx.lineTo(200, 200);
+                ctx.stroke();
+                console.log('Test line drawn on canvas');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

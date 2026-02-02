@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Room Joining Test - Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .step { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Room Joining - Simple Test</h1>
+    
+    <div class="step">
+        <h3>✅ Issues Fixed:</h3>
+        <div class="success">
+            • Syntax error in websocket.js - FIXED<br>
+            • WebSocketManager not defined - FIXED<br>
+            • Room state sync issues - FIXED<br>
+            • Debug logging added<br>
+            • Favicon added for 404 fix
+        </div>
+    </div>
+    
+    <div class="step">
+        <h3>🧪 Testing Steps:</h3>
+        <ol>
+            <li>Open browser console (F12)</li>
+            <li>Visit <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+            <li>Type "test" in room input</li>
+            <li>Click "Join" button</li>
+            <li>Look for these console messages:</li>
+        </ol>
+        
+        <div style="background: #e9ecef; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 12px;">
+            <strong>Expected Console Output:</strong><br>
+            ✓ DOM Content Loaded<br>
+            ✓ WebSocketManager class loaded<br>
+            ✓ Attempting to join room: test<br>
+            ✓ Socket connected: true<br>
+            ✓ Received roomJoined event<br>
+            ✓ Room display shows: "Room: test"<br>
+            ✓ Canvas ready for drawing<br>
+            ✓ No syntax errors
+        </div>
+    </div>
+    
+    <div class="step">
+        <h3>🚀 Quick Test Buttons:</h3>
+        <button onclick="testJoin()">Test Join Room "test"</button>
+        <button onclick="checkStatus()">Check WebSocket Status</button>
+        <div id="status" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;"></div>
+    </div>
+    
+    <script>
+        function testJoin() {
+            window.open('http://localhost:3000', '_blank');
+        }
+        
+        function checkStatus() {
+            const status = document.getElementById('status');
+            if (window.location.hostname === 'localhost' && window.location.port === '3000') {
+                status.innerHTML = '<span class="success">✅ Main app is accessible</span><br><button onclick="window.open(\'http://localhost:3000\', \'_blank\')">🚀 Open App</button>';
+            } else {
+                status.innerHTML = '<span class="error">❌ Main app not accessible on localhost:3000</span>';
+            }
+        }
+        
+        // Auto-check status
+        setTimeout(checkStatus, 1000);
+    </script>
+</body>
+</html>
