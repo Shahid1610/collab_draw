@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const undoBtn = document.getElementById('undoBtn');
     const redoBtn = document.getElementById('redoBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const exportPngBtn = document.getElementById('exportPngBtn');
+    const exportSvgBtn = document.getElementById('exportSvgBtn');
     const roomInput = document.getElementById('roomInput');
     const joinBtn = document.getElementById('joinBtn');
     const roomDisplay = document.getElementById('roomDisplay');
@@ -154,6 +156,67 @@ document.addEventListener('DOMContentLoaded', () => {
             wsManager.sendClear();
         }
     });
+
+    // Helper functions for exporting
+    function downloadDataUrl(dataUrl, filename) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    // Export as PNG
+    if (exportPngBtn) {
+        exportPngBtn.addEventListener('click', () => {
+            try {
+                const dataUrl = canvasElement.toDataURL('image/png');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                downloadDataUrl(dataUrl, `collaborative-canvas-${timestamp}.png`);
+            } catch (err) {
+                console.error('Failed to export PNG:', err);
+                alert('Sorry, something went wrong while exporting PNG.');
+            }
+        });
+    }
+
+    // Export as SVG (PNG embedded in an SVG container)
+    if (exportSvgBtn) {
+        exportSvgBtn.addEventListener('click', () => {
+            try {
+                const dpr = window.devicePixelRatio || 1;
+                const cssWidth = canvasElement.width / dpr;
+                const cssHeight = canvasElement.height / dpr;
+
+                const pngDataUrl = canvasElement.toDataURL('image/png');
+
+                const svgContent =
+                    `<svg xmlns="http://www.w3.org/2000/svg" ` +
+                    `width="${cssWidth}" height="${cssHeight}" viewBox="0 0 ${cssWidth} ${cssHeight}">` +
+                    `<image href="${pngDataUrl}" x="0" y="0" width="${cssWidth}" height="${cssHeight}"/>` +
+                    `</svg>`;
+
+                const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                downloadBlob(blob, `collaborative-canvas-${timestamp}.svg`);
+            } catch (err) {
+                console.error('Failed to export SVG:', err);
+                alert('Sorry, something went wrong while exporting SVG.');
+            }
+        });
+    }
 
     // Room joining
     joinBtn.addEventListener('click', () => {

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collaborative Canvas</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="controls">
         <div id="drawingTools">
@@ -21,6 +23,8 @@
             <button id="undoBtn">↶ Undo</button>
             <button id="redoBtn">↷ Redo</button>
             <button id="clearBtn">🗑️ Clear</button>
+            <button id="exportPngBtn">⬇️ Export PNG</button>
+            <button id="exportSvgBtn">⬇️ Export SVG</button>
         </div>
         <div id="roomSection">
             <input type="text" id="roomInput" placeholder="Room name" value="">
@@ -31,7 +35,7 @@
         </div>
     </div>
     <canvas id="drawingCanvas"></canvas>
-    
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="canvas.js"></script>
     <script src="websocket.js"></script>
@@ -43,13 +47,13 @@
             console.log('io available:', typeof io !== 'undefined');
             console.log('DrawingCanvas available:', typeof DrawingCanvas !== 'undefined');
             console.log('WebSocketManager available:', typeof WebSocketManager !== 'undefined');
-            
+
             const canvas = document.getElementById('drawingCanvas');
             console.log('Canvas element exists:', !!canvas);
             if (canvas) {
                 console.log('Canvas dimensions:', canvas.width + 'x' + canvas.height);
             }
-            
+
             // Test basic drawing
             const ctx = canvas?.getContext('2d');
             if (ctx) {
@@ -64,4 +68,5 @@
         }, 1000);
     </script>
 </body>
+
 </html>
