@@ -1,5 +1,3 @@
-// Fixed server.js - minimal working version
-
 console.log('Starting server...');
 
 const express = require('express');
@@ -26,13 +24,13 @@ app.use(express.static(path.join(__dirname, '../client')));
 const PORT = process.env.PORT || 3000;
 const drawingState = new DrawingState();
 
-// Simple connection handler - no problematic events
+// Connection handler
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
     socket.userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     socket.currentRoom = null;
 
-    // Basic room joining
+    // Room joining
     socket.on('joinRoom', (data) => {
         const { room } = data;
 
@@ -55,14 +53,14 @@ io.on('connection', (socket) => {
             strokes: roomState.strokes
         });
 
-        // Notify others (simplified)
+        // Notify others
         socket.to(room).emit('userJoined', {
             userId: socket.userId,
             users: [socket.userId]
         });
     });
 
-    // Basic stroke handling
+    // Stroke handling
     socket.on('addStroke', (data) => {
         const { room, stroke } = data;
 
@@ -73,7 +71,7 @@ io.on('connection', (socket) => {
 
         if (!stroke) return;
 
-        // Segments are preview-only; don't store them
+        // Segments are preview-only
         if (stroke.isSegment) {
             socket.to(room).emit('strokeAdded', stroke);
             return;
@@ -99,7 +97,7 @@ io.on('connection', (socket) => {
         socket.to(room).emit('strokeAdded', segment);
     });
 
-    // Basic cursor movement
+    // Cursor movement
     socket.on('cursorMove', (data) => {
         const { room, x, y } = data;
 
